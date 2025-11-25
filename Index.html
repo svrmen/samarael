@@ -46,7 +46,7 @@
     }
 
     #rightbar {
-      width: 340px;
+      width: 380px;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -104,7 +104,8 @@
     }
 
     input[type="text"],
-    input[type="number"] {
+    input[type="number"],
+    select {
       width: 100%;
       padding: 4px 6px;
       font-size: 12px;
@@ -113,7 +114,8 @@
       background: #ffffff;
     }
 
-    input:focus {
+    input:focus,
+    select:focus {
       outline: none;
       border-color: #2563eb;
       box-shadow: 0 0 0 1px #2563eb33;
@@ -305,8 +307,9 @@
         5) Когда вернёшься к началу — помещение замкнётся<br /><br />
         Колёсико — <b>зум</b>.<br />
         Колёсико или правая кнопка + движение (в любом режиме) — <b>двигать план</b>.<br /><br />
-        Режим «Провод» — клик по розетке/щитку, дальше клики по сетке (можно диагонально),
-        в конце клик по щитку/розетке.<br />
+        Режим «Провод» — клик по розетке/выключателю/светильнику/щитку, дальше клики по сетке (как хочешь, зигзагом),
+        в конце клик по щитку/розетке/светильнику.<br />
+        При клике по линии в режиме «Провод» можно подключиться к существующей линии через распредкоробку.<br />
         Двойной клик по розетке / щитку / линии — свойства.
       </div>
     </div>
@@ -326,6 +329,7 @@
         <button class="btn" data-mode="add-socket">Розетка</button>
         <button class="btn" data-mode="add-panel">Щиток</button>
         <button class="btn" data-mode="add-switch">Выключатель</button>
+        <button class="btn" data-mode="add-light">Светильник</button>
         <button class="btn" data-mode="add-cableout">Вывод кабеля</button>
       </div>
     </div>
@@ -350,7 +354,7 @@
 
         <div class="prop-row" id="socketNameRow" style="display:none;">
           <label>Название розетки / элемента</label>
-          <input type="text" id="socketNameInput" placeholder="Розетка кухни / ТВ" />
+          <input type="text" id="socketNameInput" placeholder="Розетка кухни / ТВ / Светильник" />
         </div>
 
         <div class="prop-row" id="panelNameRow" style="display:none;">
@@ -365,15 +369,28 @@
           </div>
           <div class="prop-row">
             <label>Тип кабеля</label>
-            <input type="text" id="wireCableInput" placeholder="ВВГнг-LS 3×2.5" />
+            <input type="text" id="wireCableInput" value="ВВГнг-LS" readonly />
           </div>
           <div class="prop-row">
             <label>Сечение, мм²</label>
-            <input type="text" id="wireSectionInput" placeholder="2.5" />
+            <select id="wireSectionInput">
+              <option value="">—</option>
+              <option value="1.5">1.5</option>
+              <option value="2.5">2.5</option>
+              <option value="4">4</option>
+              <option value="6">6</option>
+              <option value="10">10</option>
+            </select>
           </div>
           <div class="prop-row">
             <label>Число жил</label>
-            <input type="text" id="wireCoresInput" placeholder="3" />
+            <select id="wireCoresInput">
+              <option value="">—</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
           </div>
           <div class="prop-row">
             <label>Длина линии (с высотой), м</label>
@@ -426,10 +443,10 @@
     </div>
   </div>
 
-  <!-- модал розетки -->
+  <!-- модал розетки / выключателя / светильника / вывода -->
   <div id="socket-modal-backdrop" class="modal-backdrop">
     <div class="modal">
-      <h3>Свойства розетки / элемента</h3>
+      <h3>Свойства элемента</h3>
       <div class="prop-row">
         <label>Название</label>
         <input type="text" id="socketModalName" />
@@ -439,7 +456,7 @@
         <input type="number" step="0.01" id="socketModalHeight" placeholder="0.30" />
       </div>
       <div class="prop-row">
-        <label>Мощность, кВт (для розеток)</label>
+        <label>Мощность, кВт (для розеток / светильников)</label>
         <input type="number" step="0.1" id="socketModalPower" placeholder="3.5" />
       </div>
       <div class="prop-row">
@@ -482,15 +499,28 @@
       </div>
       <div class="prop-row">
         <label>Тип кабеля</label>
-        <input type="text" id="wireModalCable" />
+        <input type="text" id="wireModalCable" value="ВВГнг-LS" readonly />
       </div>
       <div class="prop-row">
         <label>Сечение, мм²</label>
-        <input type="text" id="wireModalSection" />
+        <select id="wireModalSection">
+          <option value="">—</option>
+          <option value="1.5">1.5</option>
+          <option value="2.5">2.5</option>
+          <option value="4">4</option>
+          <option value="6">6</option>
+          <option value="10">10</option>
+        </select>
       </div>
       <div class="prop-row">
         <label>Число жил</label>
-        <input type="text" id="wireModalCores" />
+        <select id="wireModalCores">
+          <option value="">—</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
       </div>
       <div class="prop-row">
         <label>Длина линии (с высотой), м</label>
@@ -513,7 +543,7 @@
       offsetY: 0,
       gridStepM: 0.1,
       rooms: [],    // {id,name,heightM,pointsM,polygonEl,labelEl}
-      sockets: [],  // {id,xM,yM,name,heightM,powerKW,group,circleEl,type:"socket"/"switch"/"cableout"}
+      sockets: [],  // {id,xM,yM,name,heightM,powerKW,group,circleEl,extraEls,type:"socket"/"switch"/"cableout"/"light"}
       panels: [],   // {id,xM,yM,name,heightM,rectEl}
       wires: [],    // {id,lineId,pointsM,polylineEl,fromType,fromId,toType,toId,group,cable,section,cores}
       boxes: [],    // {id,lineId,xM,yM,heightM,group,rectEl}
@@ -522,8 +552,7 @@
       roomDrawing: null,
       wireDrawing: null, // {lineId,fromType,fromId,pointsM,tempPolyline}
       dragging: null,
-      panning: null,
-      attachSocketId: null // выбранная розетка для подключения к линии
+      panning: null
     };
 
     const svg = document.getElementById("floorSvg");
@@ -589,8 +618,7 @@
       state.mode = mode;
       sidebarButtons.forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
       state.wireDrawing = null;
-      state.attachSocketId = null;
-      logDebug("режим: " + mode);
+      logDebug("Режим: " + mode);
     }
 
     function generateId(p) { return p + "_" + (state.nextId++); }
@@ -712,6 +740,16 @@
       return null;
     }
 
+    function beginPanning(evt) {
+      state.panning = {
+        startX: evt.clientX,
+        startY: evt.clientY,
+        startOffsetX: state.offsetX,
+        startOffsetY: state.offsetY
+      };
+      evt.preventDefault();
+    }
+
     // длины с учётом высоты
     function calcPlanLength(pointsM) {
       let L = 0;
@@ -742,7 +780,7 @@
     }
 
     function getDeviceHeightInfo(type, id) {
-      if (type === "socket" || type === "switch" || type === "cableout") {
+      if (type === "socket" || type === "switch" || type === "cableout" || type === "light") {
         const s = state.sockets.find(x => x.id === id);
         if (!s) return null;
         const room = findRoomContainingPoint({ x: s.xM, y: s.yM });
@@ -750,6 +788,7 @@
         let defH = 0.3;
         if (s.type === "switch") defH = 0.9;
         if (s.type === "cableout") defH = roomH;
+        if (s.type === "light") defH = roomH;
         const devH = s.heightM != null ? s.heightM : defH;
         return { roomHeight: roomH, deviceHeight: devH };
       }
@@ -789,8 +828,8 @@
     // окошко длины стены
     function showSegmentUiAtSvgPoint(ptSvg) {
       const rect = wrapper.getBoundingClientRect();
-      segmentUi.style.left = (rect.left + ptSvg.x + 10) + "px";
-      segmentUi.style.top  = (rect.top + ptSvg.y + 10) + "px";
+      segmentUi.style.left = (ptSvg.x + 10) + "px";
+      segmentUi.style.top  = (ptSvg.y + 10) + "px";
       segmentUi.style.display = "block";
       segmentLengthField.focus();
       segmentLengthField.select();
@@ -888,6 +927,10 @@
 
       let roomObj;
       polygon.addEventListener("mousedown", evt => {
+        if (evt.button === 1 || evt.button === 2) {
+          beginPanning(evt);
+          return;
+        }
         if (state.mode === "select") {
           evt.stopPropagation();
           setSelectedGeneric("room", roomObj);
@@ -909,6 +952,10 @@
       });
       textEl.textContent = "Помещение";
       textEl.addEventListener("mousedown", evt => {
+        if (evt.button === 1 || evt.button === 2) {
+          beginPanning(evt);
+          return;
+        }
         if (state.mode === "select") {
           evt.stopPropagation();
           setSelectedGeneric("room", roomObj);
@@ -942,57 +989,145 @@
       room.labelEl.textContent = room.name || "Помещение";
     }
 
-    // элементы
+    // элементы (розетка / выключатель / светильник / вывод)
+    function updateSocketGraphics(socketObj) {
+      const p = worldToSvg({ x: socketObj.xM, y: socketObj.yM });
+      if (!socketObj.circleEl) return;
+      socketObj.circleEl.setAttribute("cx", p.x);
+      socketObj.circleEl.setAttribute("cy", p.y);
+      if (socketObj.extraEls && socketObj.extraEls.length) {
+        if (socketObj.type === "light") {
+          const d = 4;
+          if (socketObj.extraEls[0]) {
+            socketObj.extraEls[0].setAttribute("x1", p.x - d);
+            socketObj.extraEls[0].setAttribute("y1", p.y - d);
+            socketObj.extraEls[0].setAttribute("x2", p.x + d);
+            socketObj.extraEls[0].setAttribute("y2", p.y + d);
+          }
+          if (socketObj.extraEls[1]) {
+            socketObj.extraEls[1].setAttribute("x1", p.x - d);
+            socketObj.extraEls[1].setAttribute("y1", p.y + d);
+            socketObj.extraEls[1].setAttribute("x2", p.x + d);
+            socketObj.extraEls[1].setAttribute("y2", p.y - d);
+          }
+        } else if (socketObj.type === "switch") {
+          const d = 5;
+          if (socketObj.extraEls[0]) {
+            socketObj.extraEls[0].setAttribute("x1", p.x - d);
+            socketObj.extraEls[0].setAttribute("y1", p.y + d);
+            socketObj.extraEls[0].setAttribute("x2", p.x + d);
+            socketObj.extraEls[0].setAttribute("y2", p.y - d);
+          }
+        }
+      }
+    }
+
     function addSocketLike(ptM, type) {
       const room = findRoomContainingPoint(ptM);
       if (!room) { alert("Элемент можно ставить только внутри помещения."); return; }
       const id = generateId(type);
       const sPt = worldToSvg(ptM);
+
+      const group = createSvgElement("g", {});
+      let baseRadius = 5;
+      let fill = "#ffffff";
+      let stroke = "#f97316";
+
+      if (type === "switch") {
+        baseRadius = 4;
+        fill = "#eef2ff";
+        stroke = "#6366f1";
+      } else if (type === "cableout") {
+        fill = "#e0f2fe";
+        stroke = "#0ea5e9";
+      } else if (type === "light") {
+        baseRadius = 6;
+        fill = "#ffffff";
+        stroke = "#22c55e";
+      }
+
       const circle = createSvgElement("circle", {
-        cx: sPt.x, cy: sPt.y, r: 5,
-        fill: type === "switch" ? "#eef2ff" : (type === "cableout" ? "#e0f2fe" : "#ffffff"),
-        stroke: type === "switch" ? "#6366f1" : (type === "cableout" ? "#0ea5e9" : "#f97316"),
+        cx: sPt.x, cy: sPt.y, r: baseRadius,
+        fill: fill,
+        stroke: stroke,
         "stroke-width": "1.5"
       });
+      group.appendChild(circle);
+
+      const extraEls = [];
+
+      if (type === "light") {
+        // УГО светильника: круг с крестом
+        const d = 4;
+        const l1 = createSvgElement("line", {
+          x1: sPt.x - d, y1: sPt.y - d,
+          x2: sPt.x + d, y2: sPt.y + d,
+          stroke: stroke,
+          "stroke-width": "1"
+        });
+        const l2 = createSvgElement("line", {
+          x1: sPt.x - d, y1: sPt.y + d,
+          x2: sPt.x + d, y2: sPt.y - d,
+          stroke: stroke,
+          "stroke-width": "1"
+        });
+        group.appendChild(l1);
+        group.appendChild(l2);
+        extraEls.push(l1, l2);
+      } else if (type === "switch") {
+        // УГО выключателя: диагональная линия
+        const d = 5;
+        const l = createSvgElement("line", {
+          x1: sPt.x - d, y1: sPt.y + d,
+          x2: sPt.x + d, y2: sPt.y - d,
+          stroke: stroke,
+          "stroke-width": "1"
+        });
+        group.appendChild(l);
+        extraEls.push(l);
+      }
+
       const socketObj = {
         id, type,
         xM: ptM.x, yM: ptM.y,
-        name: (type === "switch" ? "Выключатель " : type === "cableout" ? "Вывод " : "Розетка ") + id.split("_")[1],
-        heightM: type === "switch" ? 0.9 : (type === "cableout" ? room.heightM || 2.5 : 0.3),
+        name:
+          (type === "switch" ? "Выключатель " :
+           type === "cableout" ? "Вывод " :
+           type === "light" ? "Светильник " :
+           "Розетка ") + id.split("_")[1],
+        heightM:
+          type === "switch" ? 0.9 :
+          type === "cableout" ? (room.heightM || 2.5) :
+          type === "light" ? (room.heightM || 2.5) :
+          0.3,
         powerKW: null,
         group: "",
-        circleEl: circle
+        circleEl: circle,
+        extraEls
       };
-      circle.addEventListener("mousedown", evt => {
+
+      group.addEventListener("mousedown", evt => {
+        if (evt.button === 1 || evt.button === 2) {
+          beginPanning(evt);
+          return;
+        }
         evt.stopPropagation();
         if (evt.button !== 0) return;
         if (state.mode === "select") {
           setSelectedGeneric("socket", socketObj);
           startDrag("socket", socketObj, evt);
         } else if (state.mode === "wire") {
-          if (state.wireDrawing) {
-            wireDeviceClick(type, socketObj);
-          } else if (!state.attachSocketId) {
-            state.attachSocketId = socketObj.id;
-            logDebug("Элемент выбран. Щёлкни по линии или по щитку/розетке/выключателю.");
-          } else if (state.attachSocketId === socketObj.id) {
-            state.attachSocketId = null;
-            logDebug("Отмена выбора элемента.");
-          } else {
-            const other = state.sockets.find(x => x.id === state.attachSocketId);
-            if (other) {
-              startWireFromDevice(other.type, other);
-              wireDeviceClick(type, socketObj);
-            }
-            state.attachSocketId = null;
-          }
+          // клик по элементу в режиме провода
+          wireDeviceClick(type, socketObj);
         }
       });
-      circle.addEventListener("dblclick", evt => {
+
+      group.addEventListener("dblclick", evt => {
         evt.stopPropagation();
         if (state.mode === "select") openSocketModal(socketObj);
       });
-      getContentGroup().appendChild(circle);
+
+      getContentGroup().appendChild(group);
       state.sockets.push(socketObj);
       setSelectedGeneric("socket", socketObj);
     }
@@ -1014,22 +1149,17 @@
         rectEl: rect
       };
       rect.addEventListener("mousedown", evt => {
+        if (evt.button === 1 || evt.button === 2) {
+          beginPanning(evt);
+          return;
+        }
         evt.stopPropagation();
         if (evt.button !== 0) return;
         if (state.mode === "select") {
           setSelectedGeneric("panel", panelObj);
           startDrag("panel", panelObj, evt);
         } else if (state.mode === "wire") {
-          if (state.attachSocketId && !state.wireDrawing) {
-            const s = state.sockets.find(x => x.id === state.attachSocketId);
-            if (s) {
-              startWireFromDevice(s.type, s);
-              wireDeviceClick("panel", panelObj);
-            }
-            state.attachSocketId = null;
-          } else {
-            wireDeviceClick("panel", panelObj);
-          }
+          wireDeviceClick("panel", panelObj);
         }
       });
       rect.addEventListener("dblclick", evt => {
@@ -1049,10 +1179,25 @@
         rx: 1, ry: 1,
         fill: "#bbf7d0", stroke: "#16a34a", "stroke-width": "1"
       });
+      rect.addEventListener("mousedown", evt => {
+        if (evt.button === 1 || evt.button === 2) {
+          beginPanning(evt);
+          return;
+        }
+        evt.stopPropagation();
+      });
       getContentGroup().appendChild(rect);
       const room = findRoomContainingPoint(ptM);
       const roomH = room && room.heightM ? room.heightM : 2.5;
-      const boxObj = { id, lineId, xM: ptM.x, yM: ptM.y, heightM: roomH, group: groupName || "", rectEl: rect };
+      const boxObj = {
+        id,
+        lineId,
+        xM: ptM.x,
+        yM: ptM.y,
+        heightM: roomH,
+        group: groupName || "",
+        rectEl: rect
+      };
       state.boxes.push(boxObj);
       return boxObj;
     }
@@ -1104,7 +1249,7 @@
         startWireFromDevice(type, obj);
       } else {
         const pts = state.wireDrawing.pointsM.slice();
-        pts.push(endPt); // последняя точка как есть (может быть диагональ)
+        pts.push(endPt);
         const polyline = createSvgElement("polyline", {
           fill: "none", stroke: "#111827", "stroke-width": "1.5"
         });
@@ -1119,7 +1264,7 @@
           pointsM: pts,
           polylineEl: polyline,
           group: "",
-          cable: "",
+          cable: "ВВГнг-LS",
           section: "",
           cores: ""
         };
@@ -1151,20 +1296,25 @@
       return best;
     }
 
-    function attachSocketToWire(socketObj, wireObj) {
-      if (!wireObj.pointsM || wireObj.pointsM.length < 2) return;
-      const ptOnWire = nearestPointOnWire(wireObj.pointsM, { x: socketObj.xM, y: socketObj.yM });
-      const box = addBoxAtPoint(wireObj.group, wireObj.lineId, ptOnWire);
+    function attachWireDrawingToExistingLine(targetWire) {
+      if (!state.wireDrawing) return;
+      const drawing = state.wireDrawing;
+      const fromType = drawing.fromType;
+      const fromId = drawing.fromId;
+      const points = drawing.pointsM.slice();
+      if (points.length === 0) return;
 
-      const pts = [];
-      const start = { x: box.xM, y: box.yM };
-      const end = { x: socketObj.xM, y: socketObj.yM };
-      pts.push(start);
-      // для ветки можно сделать ломаную под 90°, чтобы не усложнять
-      if (start.x !== end.x && start.y !== end.y) {
-        pts.push({ x: end.x, y: start.y });
-      }
-      pts.push(end);
+      const lastPt = points[points.length - 1];
+      const ptOnWire = nearestPointOnWire(targetWire.pointsM, lastPt);
+      points.push(ptOnWire);
+
+      const lineId = targetWire.lineId;
+      const group = targetWire.group || "";
+      const cable = targetWire.cable || "ВВГнг-LS";
+      const section = targetWire.section || "";
+      const cores = targetWire.cores || "";
+
+      const box = addBoxAtPoint(group, lineId, ptOnWire);
 
       const polyline = createSvgElement("polyline", {
         fill: "none", stroke: "#111827", "stroke-width": "1.5"
@@ -1173,37 +1323,45 @@
 
       const newWire = {
         id: generateId("wire"),
-        lineId: wireObj.lineId,
-        fromType: "box",
-        fromId: box.id,
-        toType: socketObj.type,
-        toId: socketObj.id,
-        pointsM: pts,
+        lineId,
+        fromType,
+        fromId,
+        toType: "box",
+        toId: box.id,
+        pointsM: points,
         polylineEl: polyline,
-        group: wireObj.group,
-        cable: wireObj.cable,
-        section: wireObj.section,
-        cores: wireObj.cores
+        group,
+        cable,
+        section,
+        cores
       };
       registerWirePolylineHandlers(newWire);
       updateWirePolyline(newWire);
       state.wires.push(newWire);
+
+      drawing.tempPolyline.remove();
+      state.wireDrawing = null;
+
       setSelectedWireLine(newWire);
       rebuildGroupsTable();
-      logDebug("Создана ветка от коробки к розетке, длина ≈ " + calcWireLength3D(newWire).toFixed(2) + " м");
+      logDebug("Создана ветка к существующей линии через распредкоробку, длина ≈ " + calcWireLength3D(newWire).toFixed(2) + " м");
     }
 
     function registerWirePolylineHandlers(wireObj) {
       const polyline = wireObj.polylineEl;
       polyline.addEventListener("mousedown", evt => {
+        if (evt.button === 1 || evt.button === 2) {
+          beginPanning(evt);
+          return;
+        }
         evt.stopPropagation();
         if (evt.button !== 0) return;
-        if (state.mode === "wire" && state.attachSocketId && !state.wireDrawing) {
-          const s = state.sockets.find(x => x.id === state.attachSocketId);
-          if (!s) return;
-          const ok = confirm("Подключить этот элемент к выбранной линии (через распредкоробку)?");
-          if (ok) attachSocketToWire(s, wireObj);
-          state.attachSocketId = null;
+
+        if (state.mode === "wire" && state.wireDrawing) {
+          const ok = confirm("Подключить текущую линию к этой через распредкоробку?");
+          if (ok) {
+            attachWireDrawingToExistingLine(wireObj);
+          }
         } else if (state.mode === "select") {
           setSelectedWireLine(wireObj);
         }
@@ -1214,7 +1372,7 @@
       });
     }
 
-    // перетаскивание розеток/щитков
+    // перетаскивание
     function startDrag(type, obj, evt) {
       const w = svgToWorld(evt);
       state.dragging = {
@@ -1222,6 +1380,62 @@
         offsetXM: obj.xM - w.x,
         offsetYM: obj.yM - w.y
       };
+    }
+
+    function getDeviceWorldPoint(type, id) {
+      if (type === "socket" || type === "switch" || type === "cableout" || type === "light") {
+        const s = state.sockets.find(x => x.id === id);
+        if (!s) return null;
+        return { x: s.xM, y: s.yM };
+      }
+      if (type === "panel") {
+        const p = state.panels.find(x => x.id === id);
+        if (!p) return null;
+        return { x: p.xM, y: p.yM };
+      }
+      if (type === "box") {
+        const b = state.boxes.find(x => x.id === id);
+        if (!b) return null;
+        return { x: b.xM, y: b.yM };
+      }
+      return null;
+    }
+
+    // Полный пересчёт всей линии (A1): каждый участок — манхэттен от from к to
+    function recalcLineManhattan(lineId) {
+      state.wires.forEach(w => {
+        if (w.lineId !== lineId) return;
+        const fromPt = getDeviceWorldPoint(w.fromType, w.fromId);
+        const toPt = getDeviceWorldPoint(w.toType, w.toId);
+        if (!fromPt || !toPt) return;
+        const pts = [];
+        pts.push({ x: fromPt.x, y: fromPt.y });
+        if (fromPt.x !== toPt.x && fromPt.y !== toPt.y) {
+          // L-образный маршрут (без диагоналей)
+          pts.push({ x: fromPt.x, y: toPt.y });
+        }
+        pts.push({ x: toPt.x, y: toPt.y });
+        w.pointsM = pts;
+        updateWirePolyline(w);
+      });
+      rebuildGroupsTable();
+      if (state.selected && state.selected.type === "wire") {
+        const wSel = findById("wire", state.selected.id);
+        if (wSel) {
+          wireLengthLabel.textContent = calcLineLength3D(wSel.lineId).toFixed(2);
+        }
+      }
+    }
+
+    function recalcLinesForDevice(type, id) {
+      const lineIds = new Set();
+      state.wires.forEach(w => {
+        if ((w.fromType === type && w.fromId === id) ||
+            (w.toType === type && w.toId === id)) {
+          lineIds.add(w.lineId);
+        }
+      });
+      lineIds.forEach(lineId => recalcLineManhattan(lineId));
     }
 
     function handleDragMove(evt) {
@@ -1237,19 +1451,19 @@
       if (!room) return;
       obj.xM = newPt.x;
       obj.yM = newPt.y;
-      const s = worldToSvg(newPt);
       if (type === "socket") {
-        obj.circleEl.setAttribute("cx", s.x);
-        obj.circleEl.setAttribute("cy", s.y);
+        updateSocketGraphics(obj);
       } else if (type === "panel") {
+        const s = worldToSvg(newPt);
         obj.rectEl.setAttribute("x", s.x - 7);
         obj.rectEl.setAttribute("y", s.y - 7);
       }
-      // провода пока не подтягиваем
+      // Пересчёт всех линий, связанных с этим устройством
+      recalcLinesForDevice(type, id);
     }
     function stopDrag() { state.dragging = null; }
 
-    // свойства (левая панель)
+    // свойства (панель слева)
     function renderSelectionPanel() {
       if (!state.selected) {
         noSelection.style.display = "block";
@@ -1277,7 +1491,10 @@
         roomNameInput.value = obj.name || "";
         roomHeightInput.value = obj.heightM != null ? obj.heightM : "";
       } else if (type === "socket") {
-        const labelType = obj.type === "switch" ? "Выключатель" : obj.type === "cableout" ? "Вывод кабеля" : "Розетка";
+        let labelType = "Розетка";
+        if (obj.type === "switch") labelType = "Выключатель";
+        else if (obj.type === "cableout") labelType = "Вывод кабеля";
+        else if (obj.type === "light") labelType = "Светильник";
         selectedTypeLabel.textContent = labelType;
         socketNameRow.style.display = "block";
         socketNameInput.value = obj.name || "";
@@ -1291,7 +1508,7 @@
         wirePropsRow.style.display = "block";
         deleteLineRow.style.display = "block";
         wireGroupInput.value = w.group || "";
-        wireCableInput.value = w.cable || "";
+        wireCableInput.value = w.cable || "ВВГнг-LS";
         wireSectionInput.value = w.section || "";
         wireCoresInput.value = w.cores || "";
         wireLengthLabel.textContent = calcLineLength3D(w.lineId).toFixed(2);
@@ -1336,20 +1553,20 @@
       updateLineProps(w.lineId, obj => obj.group = wireGroupInput.value);
       rebuildGroupsTable();
     });
-    wireCableInput.addEventListener("input", () => {
-      if (!state.selected || state.selected.type !== "wire") return;
-      const w = findById("wire", state.selected.id); if (!w) return;
-      updateLineProps(w.lineId, obj => obj.cable = wireCableInput.value);
-    });
-    wireSectionInput.addEventListener("input", () => {
+
+    // cable type — фиксируем как ВВГнг-LS через логику, поле только для отображения
+
+    wireSectionInput.addEventListener("change", () => {
       if (!state.selected || state.selected.type !== "wire") return;
       const w = findById("wire", state.selected.id); if (!w) return;
       updateLineProps(w.lineId, obj => obj.section = wireSectionInput.value);
+      rebuildGroupsTable();
     });
-    wireCoresInput.addEventListener("input", () => {
+    wireCoresInput.addEventListener("change", () => {
       if (!state.selected || state.selected.type !== "wire") return;
       const w = findById("wire", state.selected.id); if (!w) return;
       updateLineProps(w.lineId, obj => obj.cores = wireCoresInput.value);
+      rebuildGroupsTable();
     });
 
     deleteLineBtn.addEventListener("click", () => {
@@ -1370,7 +1587,7 @@
       logDebug("Линия удалена.");
     });
 
-    // модал розетки/выключателя/вывода
+    // модал розетки/выключателя/светильника/вывода
     function openSocketModal(socketObj) {
       modalSocketId = socketObj.id;
       socketModalName.value = socketObj.name || "";
@@ -1437,7 +1654,7 @@
       const lineId = wireObj.lineId;
       const any = wireObj;
       wireModalGroup.value = any.group || "";
-      wireModalCable.value = any.cable || "";
+      wireModalCable.value = any.cable || "ВВГнг-LS";
       wireModalSection.value = any.section || "";
       wireModalCores.value = any.cores || "";
       wireModalLength.textContent = calcLineLength3D(lineId).toFixed(2);
@@ -1452,7 +1669,7 @@
       const w = findById("wire", modalWireId); if (!w) return;
       const lineId = w.lineId;
       const group = wireModalGroup.value || "";
-      const cable = wireModalCable.value || "";
+      const cable = "ВВГнг-LS";
       const section = wireModalSection.value || "";
       const cores = wireModalCores.value || "";
       updateLineProps(lineId, obj => {
@@ -1482,19 +1699,44 @@
       state.wires.forEach(w => {
         const name = w.group && w.group.trim() ? w.group.trim() : "Без группы";
         if (!groups[name]) groups[name] = {
-          name, length: 0, wiresCount: 0, socketsCount: 0, boxesCount: 0
+          name,
+          length: 0,
+          wiresCount: 0,
+          socketsCount: 0,
+          switchesCount: 0,
+          lightsCount: 0,
+          cableoutsCount: 0,
+          boxesCount: 0,
+          cable: w.cable || "ВВГнг-LS",
+          section: w.section || "",
+          cores: w.cores || ""
         };
-        groups[name].length += calcWireLength3D(w);
-        groups[name].wiresCount += 1;
-        if (w.toType === "socket" || w.toType === "switch" || w.toType === "cableout" ||
-            w.fromType === "socket" || w.fromType === "switch" || w.fromType === "cableout") {
-          groups[name].socketsCount += 1;
-        }
+        const g = groups[name];
+        g.length += calcWireLength3D(w);
+        g.wiresCount += 1;
+
+        // считаем элементы по типам
+        [ [w.fromType, w.fromId], [w.toType, w.toId] ].forEach(([t]) => {
+          if (t === "socket") g.socketsCount += 1;
+          if (t === "switch") g.switchesCount += 1;
+          if (t === "light") g.lightsCount += 1;
+          if (t === "cableout") g.cableoutsCount += 1;
+        });
       });
       state.boxes.forEach(b => {
         const name = b.group && b.group.trim() ? b.group.trim() : "Без группы";
         if (!groups[name]) groups[name] = {
-          name, length: 0, wiresCount: 0, socketsCount: 0, boxesCount: 0
+          name,
+          length: 0,
+          wiresCount: 0,
+          socketsCount: 0,
+          switchesCount: 0,
+          lightsCount: 0,
+          cableoutsCount: 0,
+          boxesCount: 0,
+          cable: "ВВГнг-LS",
+          section: "",
+          cores: ""
         };
         groups[name].boxesCount += 1;
       });
@@ -1503,13 +1745,30 @@
         groupsTable.innerHTML = '<div id="groups-table-empty">Пока нет ни одной линии.</div>';
         return;
       }
-      let html = "<table><thead><tr><th>Группа</th><th>Длина, м</th><th>Линий</th><th>Розеток/элементов</th><th>Коробок</th></tr></thead><tbody>";
+      let html = "<table><thead><tr>" +
+        "<th>Группа</th>" +
+        "<th>Кабель</th>" +
+        "<th>Длина, м</th>" +
+        "<th>Линий</th>" +
+        "<th>Розеток</th>" +
+        "<th>Выключателей</th>" +
+        "<th>Светильников</th>" +
+        "<th>Выводов</th>" +
+        "<th>Коробок</th>" +
+        "</tr></thead><tbody>";
       Object.values(groups).forEach(g => {
+        const cableStr = (g.cable || "ВВГнг-LS") +
+          (g.section ? " " + g.section + "мм²" : "") +
+          (g.cores ? " " + g.cores + "ж" : "");
         html += `<tr>
           <td>${g.name}</td>
+          <td>${cableStr}</td>
           <td>${g.length.toFixed(2)}</td>
           <td>${g.wiresCount}</td>
           <td>${g.socketsCount}</td>
+          <td>${g.switchesCount}</td>
+          <td>${g.lightsCount}</td>
+          <td>${g.cableoutsCount}</td>
           <td>${g.boxesCount}</td>
         </tr>`;
       });
@@ -1549,11 +1808,7 @@
         const last = state.roomDrawing.pointsM[state.roomDrawing.pointsM.length - 1];
         showSegmentUiAtSvgPoint(worldToSvg(last));
       }
-      state.sockets.forEach(s => {
-        const p = worldToSvg({ x: s.xM, y: s.yM });
-        s.circleEl.setAttribute("cx", p.x);
-        s.circleEl.setAttribute("cy", p.y);
-      });
+      state.sockets.forEach(s => updateSocketGraphics(s));
       state.panels.forEach(p => {
         const q = worldToSvg({ x: p.xM, y: p.yM });
         p.rectEl.setAttribute("x", q.x - 7);
@@ -1574,13 +1829,7 @@
 
       // панорамирование — средняя или правая кнопка в любом режиме
       if (evt.button === 1 || evt.button === 2) {
-        state.panning = {
-          startX: evt.clientX,
-          startY: evt.clientY,
-          startOffsetX: state.offsetX,
-          startOffsetY: state.offsetY
-        };
-        evt.preventDefault();
+        beginPanning(evt);
         return;
       }
 
@@ -1594,6 +1843,8 @@
         addPanel(ptM);
       } else if (state.mode === "add-switch") {
         addSocketLike(ptM, "switch");
+      } else if (state.mode === "add-light") {
+        addSocketLike(ptM, "light");
       } else if (state.mode === "add-cableout") {
         addSocketLike(ptM, "cableout");
       } else if (state.mode === "wire") {
@@ -1636,7 +1887,7 @@
 
     // старт
     initSvg();
-    logDebug("Гоово: рисуй помещения, ставь элементы, строй линии, подключай через коробки.");
+    logDebug("Готово: помещения, элементы, провода, привязка к линиям и спецификация.");
   </script>
 </body>
 </html>
