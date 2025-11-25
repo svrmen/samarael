@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Электрика квартиры — план</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background: #f3f4f6;
+    }
+
+    #sidebar {
+      width: 320px;
+      background: #ffffff;
+      border-right: 1px solid #e5e7eb;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      gap: 6px;
+      padding: 6px;
+    }
+
+    #canvas-wrapper {
+      flex: 1;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #rightbar {
+      width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0 0 4px 0;
+    }
+
+    h2 {
+      font-size: 14px;
+      margin: 4px 0 6px 0;
+    }
+
+    .section {
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      padding: 8px;
+      background: #f9fafb;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn {
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.1s, box-shadow 0.1s, border-color 0.1s;
+    }
+
+    .btn:hover {
+      background: #f3f4f6;
+    }
+
+    .btn.active {
+      background: #2563eb;
+      color: white;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px #2563eb33;
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      margin-bottom: 2px;
+      color: #374151;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 4px 6px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px #2563eb33;
+    }
+
+    #floorSvg {
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      user-select: none;
+      display: block;
+    }
+
+    #info {
+      font-size: 11px;
+      color: #4b5563;
+    }
+
+    #selection-props {
+      font-size: 12px;
+    }
+
+    .prop-row {
+      margin-bottom: 6px;
+    }
+
+    .selected-outline {
+      stroke: #dc2626 !important;
+      stroke-width: 3 !important;
+    }
+
+    #debug-output {
+      font-size: 11px;
+      white-space: pre-wrap;
+      max-height: 100px;
+      overflow: auto;
+      background: #111827;
+      color: #e5e7eb;
+      border-radius: 8px;
+      padding: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    /* окошко длины стены */
+    #segment-ui {
+      position: absolute;
+      display: none;
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+      padding: 6px;
+      font-size: 11px;
+      z-index: 10;
+    }
+
+    #segment-ui input {
+      width: 70px;
+      padding: 2px 4px;
+      font-size: 11px;
+      margin-right: 4px;
+    }
+
+    #segment-ui .arrow-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+      background: #f9fafb;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 1px;
+    }
+
+    #segment-ui .arrow-btn:hover {
+      background: #e5e7eb;
+    }
+
+    #segment-ui-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 2px;
+    }
+
+    #segment-ui-arrows {
+      display: grid;
+      grid-template-columns: repeat(3, auto);
+      grid-template-rows: repeat(3, auto);
+      gap: 2px;
+      justify-items: center;
+      align-items: center;
+    }
+
+    #segment-ui-arrows .spacer {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* модальные окна */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    .modal {
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 12px;
+      min-width: 260px;
+      max-width: 360px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.45);
+      font-size: 13px;
+    }
+
+    .modal h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .btn-small {
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .btn-small.primary {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 11px;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 3px 4px;
+      text-align: left;
+    }
+
+    th {
+      background: #e5e7eb;
+      font-weight: 600;
+    }
+
+    #groups-table-empty {
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    #deleteLineRow button {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #991b1b;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="section">
+      <h1>Электрика квартиры</h1>
+      <div id="info">
+        <b>Помещение:</b><br />
+        1) Режим <b>«Помещение»</b><br />
+        2) Клик по плану — стартовая точка<br />
+        3) В окошке на плане вводишь длину (м) и жмёшь стрелку (←→↑↓)<br />
+        4) Стены строго по осям<br />
+        5) Когда вернёшься к началу — помещение замкнётся<br /><br />
+        Колёсико — <b>зум</b>.<br />
+        Колёсико или правая кнопка + движение (в любом режиме) — <b>двигать план</b>.<br /><br />
+        Режим «Провод» — клик по розетке/щитку, дальше клики по сетке (можно диагонально),
+        в конце клик по щитку/розетке.<br />
+        Двойной клик по розетке / щитку / линии — свойства.
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Режим</h2>
+      <div class="toolbar">
+        <button class="btn active" data-mode="select">Выбор</button>
+        <button class="btn" data-mode="draw-room">Помещение</button>
+        <button class="btn" data-mode="wire">Провод</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Элементы</h2>
+      <div class="toolbar">
+        <button class="btn" data-mode="add-socket">Розетка</button>
+        <button class="btn" data-mode="add-panel">Щиток</button>
+        <button class="btn" data-mode="add-switch">Выключатель</button>
+        <button class="btn" data-mode="add-cableout">Вывод кабеля</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Свойства выбранного</h2>
+      <div id="no-selection">Ничего не выбрано.</div>
+      <div id="selection-props" style="display:none;">
+        <div class="prop-row">
+          <label>Тип</label>
+          <div id="selected-type"></div>
+        </div>
+
+        <div class="prop-row" id="roomNameRow" style="display:none;">
+          <label>Название помещения</label>
+          <input type="text" id="roomNameInput" placeholder="Кухня / Комната / Коридор" />
+        </div>
+        <div class="prop-row" id="roomHeightRow" style="display:none;">
+          <label>Высота помещения, м</label>
+          <input type="number" step="0.01" id="roomHeightInput" placeholder="2.50" />
+        </div>
+
+        <div class="prop-row" id="socketNameRow" style="display:none;">
+          <label>Название розетки / элемента</label>
+          <input type="text" id="socketNameInput" placeholder="Розетка кухни / ТВ" />
+        </div>
+
+        <div class="prop-row" id="panelNameRow" style="display:none;">
+          <label>Название щитка</label>
+          <input type="text" id="panelNameInput" placeholder="Щиток в коридоре" />
+        </div>
+
+        <div id="wirePropsRow" style="display:none;">
+          <div class="prop-row">
+            <label>Группа (имя линии)</label>
+            <input type="text" id="wireGroupInput" placeholder="Группа 1 / QF1 духовой шкаф" />
+          </div>
+          <div class="prop-row">
+            <label>Тип кабеля</label>
+            <input type="text" id="wireCableInput" placeholder="ВВГнг-LS 3×2.5" />
+          </div>
+          <div class="prop-row">
+            <label>Сечение, мм²</label>
+            <input type="text" id="wireSectionInput" placeholder="2.5" />
+          </div>
+          <div class="prop-row">
+            <label>Число жил</label>
+            <input type="text" id="wireCoresInput" placeholder="3" />
+          </div>
+          <div class="prop-row">
+            <label>Длина линии (с высотой), м</label>
+            <div id="wireLengthLabel">—</div>
+          </div>
+          <div class="prop-row" id="deleteLineRow" style="display:none;">
+            <button id="deleteLineBtn" class="btn-small">Удалить линию</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Подсказка / отладка</h2>
+      <div id="debug-output">Готово к работе.</div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="canvas-wrapper">
+      <svg id="floorSvg"></svg>
+
+      <!-- окошко длины стены -->
+      <div id="segment-ui">
+        <div id="segment-ui-row">
+          <span>Длина, м:</span>
+          <input type="number" step="0.1" min="0.1" value="1.0" id="segmentLengthField" />
+        </div>
+        <div id="segment-ui-arrows">
+          <span class="spacer"></span>
+          <button class="arrow-btn" data-dir="up">↑</button>
+          <span class="spacer"></span>
+          <button class="arrow-btn" data-dir="left">←</button>
+          <span class="spacer"></span>
+          <button class="arrow-btn" data-dir="right">→</button>
+          <span class="spacer"></span>
+          <button class="arrow-btn" data-dir="down">↓</button>
+          <span class="spacer"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="rightbar">
+      <div class="section">
+        <h2>Группы / линии</h2>
+        <div id="groups-table">
+          <div id="groups-table-empty">Пока нет ни одной линии.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- модал розетки -->
+  <div id="socket-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3>Свойства розетки / элемента</h3>
+      <div class="prop-row">
+        <label>Название</label>
+        <input type="text" id="socketModalName" />
+      </div>
+      <div class="prop-row">
+        <label>Высота установки, м</label>
+        <input type="number" step="0.01" id="socketModalHeight" placeholder="0.30" />
+      </div>
+      <div class="prop-row">
+        <label>Мощность, кВт (для розеток)</label>
+        <input type="number" step="0.1" id="socketModalPower" placeholder="3.5" />
+      </div>
+      <div class="prop-row">
+        <label>Группа / линия</label>
+        <input type="text" id="socketModalGroup" placeholder="Группа 1 / QF1" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-small" id="socketModalCancel">Отмена</button>
+        <button class="btn-small primary" id="socketModalOk">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- модал щитка -->
+  <div id="panel-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3>Свойства щитка</h3>
+      <div class="prop-row">
+        <label>Название</label>
+        <input type="text" id="panelModalName" />
+      </div>
+      <div class="prop-row">
+        <label>Высота установки, м</label>
+        <input type="number" step="0.01" id="panelModalHeight" placeholder="1.50" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-small" id="panelModalCancel">Отмена</button>
+        <button class="btn-small primary" id="panelModalOk">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- модал провода -->
+  <div id="wire-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+      <h3>Свойства линии</h3>
+      <div class="prop-row">
+        <label>Группа / линия</label>
+        <input type="text" id="wireModalGroup" />
+      </div>
+      <div class="prop-row">
+        <label>Тип кабеля</label>
+        <input type="text" id="wireModalCable" />
+      </div>
+      <div class="prop-row">
+        <label>Сечение, мм²</label>
+        <input type="text" id="wireModalSection" />
+      </div>
+      <div class="prop-row">
+        <label>Число жил</label>
+        <input type="text" id="wireModalCores" />
+      </div>
+      <div class="prop-row">
+        <label>Длина линии (с высотой), м</label>
+        <div id="wireModalLength"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-small" id="wireModalCancel">Отмена</button>
+        <button class="btn-small primary" id="wireModalOk">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      mode: "select",
+      scale: 80,
+      minScale: 40,
+      maxScale: 200,
+      offsetX: 0,
+      offsetY: 0,
+      gridStepM: 0.1,
+      rooms: [],    // {id,name,heightM,pointsM,polygonEl,labelEl}
+      sockets: [],  // {id,xM,yM,name,heightM,powerKW,group,circleEl,type:"socket"/"switch"/"cableout"}
+      panels: [],   // {id,xM,yM,name,heightM,rectEl}
+      wires: [],    // {id,lineId,pointsM,polylineEl,fromType,fromId,toType,toId,group,cable,section,cores}
+      boxes: [],    // {id,lineId,xM,yM,heightM,group,rectEl}
+      nextId: 1,
+      selected: null,
+      roomDrawing: null,
+      wireDrawing: null, // {lineId,fromType,fromId,pointsM,tempPolyline}
+      dragging: null,
+      panning: null,
+      attachSocketId: null // выбранная розетка для подключения к линии
+    };
+
+    const svg = document.getElementById("floorSvg");
+    const wrapper = document.getElementById("canvas-wrapper");
+    const segmentUi = document.getElementById("segment-ui");
+    const segmentLengthField = document.getElementById("segmentLengthField");
+    const debugOutput = document.getElementById("debug-output");
+
+    const sidebarButtons = Array.from(document.querySelectorAll(".btn[data-mode]"));
+    const noSelection = document.getElementById("no-selection");
+    const selectionProps = document.getElementById("selection-props");
+    const selectedTypeLabel = document.getElementById("selected-type");
+
+    const roomNameRow = document.getElementById("roomNameRow");
+    const roomHeightRow = document.getElementById("roomHeightRow");
+    const socketNameRow = document.getElementById("socketNameRow");
+    const panelNameRow = document.getElementById("panelNameRow");
+    const wirePropsRow = document.getElementById("wirePropsRow");
+    const deleteLineRow = document.getElementById("deleteLineRow");
+    const deleteLineBtn = document.getElementById("deleteLineBtn");
+
+    const roomNameInput = document.getElementById("roomNameInput");
+    const roomHeightInput = document.getElementById("roomHeightInput");
+    const socketNameInput = document.getElementById("socketNameInput");
+    const panelNameInput = document.getElementById("panelNameInput");
+    const wireGroupInput = document.getElementById("wireGroupInput");
+    const wireCableInput = document.getElementById("wireCableInput");
+    const wireSectionInput = document.getElementById("wireSectionInput");
+    const wireCoresInput = document.getElementById("wireCoresInput");
+    const wireLengthLabel = document.getElementById("wireLengthLabel");
+    const groupsTable = document.getElementById("groups-table");
+
+    // модалки
+    const socketModalBackdrop = document.getElementById("socket-modal-backdrop");
+    const socketModalName = document.getElementById("socketModalName");
+    const socketModalHeight = document.getElementById("socketModalHeight");
+    const socketModalPower = document.getElementById("socketModalPower");
+    const socketModalGroup = document.getElementById("socketModalGroup");
+    const socketModalOk = document.getElementById("socketModalOk");
+    const socketModalCancel = document.getElementById("socketModalCancel");
+    let modalSocketId = null;
+
+    const panelModalBackdrop = document.getElementById("panel-modal-backdrop");
+    const panelModalName = document.getElementById("panelModalName");
+    const panelModalHeight = document.getElementById("panelModalHeight");
+    const panelModalOk = document.getElementById("panelModalOk");
+    const panelModalCancel = document.getElementById("panelModalCancel");
+    let modalPanelId = null;
+
+    const wireModalBackdrop = document.getElementById("wire-modal-backdrop");
+    const wireModalGroup = document.getElementById("wireModalGroup");
+    const wireModalCable = document.getElementById("wireModalCable");
+    const wireModalSection = document.getElementById("wireModalSection");
+    const wireModalCores = document.getElementById("wireModalCores");
+    const wireModalLength = document.getElementById("wireModalLength");
+    const wireModalOk = document.getElementById("wireModalOk");
+    const wireModalCancel = document.getElementById("wireModalCancel");
+    let modalWireId = null;
+
+    function logDebug(msg) { debugOutput.textContent = msg; }
+
+    function setMode(mode) {
+      state.mode = mode;
+      sidebarButtons.forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+      state.wireDrawing = null;
+      state.attachSocketId = null;
+      logDebug("режим: " + mode);
+    }
+
+    function generateId(p) { return p + "_" + (state.nextId++); }
+
+    function worldToSvg(ptM) {
+      return {
+        x: (ptM.x - state.offsetX) * state.scale,
+        y: (ptM.y - state.offsetY) * state.scale
+      };
+    }
+
+    function svgToWorld(evt) {
+      const rect = svg.getBoundingClientRect();
+      const xPx = evt.clientX - rect.left;
+      const yPx = evt.clientY - rect.top;
+      const xM = xPx / state.scale + state.offsetX;
+      const yM = yPx / state.scale + state.offsetY;
+      const step = state.gridStepM;
+      return {
+        x: Math.round(xM / step) * step,
+        y: Math.round(yM / step) * step
+      };
+    }
+
+    function createSvgElement(tag, attrs = {}) {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      return el;
+    }
+
+    function initSvg() {
+      resizeSvg();
+      window.addEventListener("resize", () => { resizeSvg(); redrawAllGeometry(); });
+
+      const defs = createSvgElement("defs");
+      const pattern = createSvgElement("pattern", {
+        id: "gridPattern",
+        width: state.gridStepM * state.scale,
+        height: state.gridStepM * state.scale,
+        patternUnits: "userSpaceOnUse"
+      });
+      const gridLine = createSvgElement("path", {
+        d: `M ${state.gridStepM * state.scale} 0 L 0 0 0 ${state.gridStepM * state.scale}`,
+        fill: "none",
+        stroke: "#e5e7eb",
+        "stroke-width": "1"
+      });
+      pattern.appendChild(gridLine);
+      defs.appendChild(pattern);
+      svg.appendChild(defs);
+
+      const bgRect = createSvgElement("rect", {
+        x: 0, y: 0, width: "100%", height: "100%", fill: "url(#gridPattern)"
+      });
+      svg.appendChild(bgRect);
+
+      const contentGroup = createSvgElement("g", { id: "contentGroup" });
+      svg.appendChild(contentGroup);
+    }
+
+    function resizeSvg() {
+      const rect = wrapper.getBoundingClientRect();
+      svg.setAttribute("width", rect.width);
+      svg.setAttribute("height", rect.height);
+    }
+
+    function getContentGroup() { return document.getElementById("contentGroup"); }
+
+    function updateGridPattern() {
+      const pattern = svg.querySelector("#gridPattern");
+      if (!pattern) return;
+      const size = state.gridStepM * state.scale;
+      pattern.setAttribute("width", size);
+      pattern.setAttribute("height", size);
+      const path = pattern.querySelector("path");
+      if (path) path.setAttribute("d", `M ${size} 0 L 0 0 0 ${size}`);
+    }
+
+    function clearSelection() {
+      [...state.rooms, ...state.sockets, ...state.panels, ...state.wires, ...state.boxes].forEach(o => {
+        if (o.polygonEl) o.polygonEl.classList.remove("selected-outline");
+        if (o.circleEl) o.circleEl.classList.remove("selected-outline");
+        if (o.rectEl) o.rectEl.classList.remove("selected-outline");
+        if (o.polylineEl) o.polylineEl.classList.remove("selected-outline");
+      });
+      state.selected = null;
+      renderSelectionPanel();
+    }
+
+    function setSelectedGeneric(type, obj) {
+      clearSelection();
+      state.selected = { type, id: obj.id };
+      if (obj.polygonEl) obj.polygonEl.classList.add("selected-outline");
+      if (obj.circleEl) obj.circleEl.classList.add("selected-outline");
+      if (obj.rectEl) obj.rectEl.classList.add("selected-outline");
+      if (obj.polylineEl) obj.polylineEl.classList.add("selected-outline");
+      renderSelectionPanel();
+    }
+
+    function setSelectedWireLine(wireObj) {
+      clearSelection();
+      state.selected = { type: "wire", id: wireObj.id };
+      const lineId = wireObj.lineId;
+      state.wires.forEach(w => {
+        if (w.lineId === lineId && w.polylineEl) w.polylineEl.classList.add("selected-outline");
+      });
+      state.boxes.forEach(b => {
+        if (b.lineId === lineId && b.rectEl) b.rectEl.classList.add("selected-outline");
+      });
+      renderSelectionPanel();
+    }
+
+    function findById(type, id) {
+      if (type === "room")   return state.rooms.find(r   => r.id === id);
+      if (type === "socket") return state.sockets.find(s => s.id === id);
+      if (type === "panel")  return state.panels.find(p  => p.id === id);
+      if (type === "wire")   return state.wires.find(w   => w.id === id);
+      if (type === "box")    return state.boxes.find(b   => b.id === id);
+      return null;
+    }
+
+    // длины с учётом высоты
+    function calcPlanLength(pointsM) {
+      let L = 0;
+      for (let i = 0; i < pointsM.length - 1; i++) {
+        const a = pointsM[i], b = pointsM[i+1];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        L += Math.sqrt(dx*dx + dy*dy);
+      }
+      return L;
+    }
+
+    function findRoomContainingPoint(ptM) {
+      return state.rooms.find(r => pointInPolygon(ptM, r.pointsM));
+    }
+
+    function pointInPolygon(pt, polyPoints) {
+      let inside = false;
+      const n = polyPoints.length;
+      for (let i = 0, j = n - 1; i < n; j = i++) {
+        const xi = polyPoints[i].x, yi = polyPoints[i].y;
+        const xj = polyPoints[j].x, yj = polyPoints[j].y;
+        const intersect =
+          (yi > pt.y) !== (yj > pt.y) &&
+          pt.x < ((xj - xi) * (pt.y - yi)) / ((yj - yi) || 1e-9) + xi;
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function getDeviceHeightInfo(type, id) {
+      if (type === "socket" || type === "switch" || type === "cableout") {
+        const s = state.sockets.find(x => x.id === id);
+        if (!s) return null;
+        const room = findRoomContainingPoint({ x: s.xM, y: s.yM });
+        const roomH = room && room.heightM ? room.heightM : 2.5;
+        let defH = 0.3;
+        if (s.type === "switch") defH = 0.9;
+        if (s.type === "cableout") defH = roomH;
+        const devH = s.heightM != null ? s.heightM : defH;
+        return { roomHeight: roomH, deviceHeight: devH };
+      }
+      if (type === "panel") {
+        const p = findById("panel", id); if (!p) return null;
+        const room = findRoomContainingPoint({ x: p.xM, y: p.yM });
+        const roomH = room && room.heightM ? room.heightM : 2.5;
+        const devH = p.heightM != null ? p.heightM : 1.5;
+        return { roomHeight: roomH, deviceHeight: devH };
+      }
+      if (type === "box") {
+        const b = findById("box", id); if (!b) return null;
+        const room = findRoomContainingPoint({ x: b.xM, y: b.yM });
+        const roomH = room && room.heightM ? room.heightM : 2.5;
+        const devH = b.heightM != null ? b.heightM : roomH;
+        return { roomHeight: roomH, deviceHeight: devH };
+      }
+      return null;
+    }
+
+    function calcWireLength3D(wire) {
+      const Lplan = calcPlanLength(wire.pointsM);
+      let Lvert = 0;
+      const a = getDeviceHeightInfo(wire.fromType, wire.fromId);
+      const b = getDeviceHeightInfo(wire.toType, wire.toId);
+      if (a) Lvert += Math.max(0, a.roomHeight - a.deviceHeight);
+      if (b) Lvert += Math.max(0, b.roomHeight - b.deviceHeight);
+      return Lplan + Lvert;
+    }
+
+    function calcLineLength3D(lineId) {
+      return state.wires
+        .filter(w => w.lineId === lineId)
+        .reduce((sum, w) => sum + calcWireLength3D(w), 0);
+    }
+
+    // окошко длины стены
+    function showSegmentUiAtSvgPoint(ptSvg) {
+      const rect = wrapper.getBoundingClientRect();
+      segmentUi.style.left = (rect.left + ptSvg.x + 10) + "px";
+      segmentUi.style.top  = (rect.top + ptSvg.y + 10) + "px";
+      segmentUi.style.display = "block";
+      segmentLengthField.focus();
+      segmentLengthField.select();
+    }
+    function hideSegmentUi() { segmentUi.style.display = "none"; }
+
+    // помещение
+    function startRoomAtPoint(ptM) {
+      if (state.roomDrawing) { logDebug("Помещение уже рисуется."); return; }
+      const polyline = createSvgElement("polyline", {
+        fill: "none", stroke: "#3b82f6", "stroke-width": "2", "stroke-dasharray": "4 4"
+      });
+      getContentGroup().appendChild(polyline);
+      const startSvg = worldToSvg(ptM);
+      const vCircle = createSvgElement("circle", {
+        cx: startSvg.x, cy: startSvg.y, r: 3, fill: "#3b82f6"
+      });
+      getContentGroup().appendChild(vCircle);
+      state.roomDrawing = { pointsM: [ptM], tempPolyline: polyline, vertexCircles: [vCircle] };
+      updateTempPolyline();
+      showSegmentUiAtSvgPoint(startSvg);
+      logDebug("Начало помещения.");
+    }
+
+    function addVertexCircle(ptM) {
+      if (!state.roomDrawing) return;
+      const s = worldToSvg(ptM);
+      const vCircle = createSvgElement("circle", {
+        cx: s.x, cy: s.y, r: 3, fill: "#3b82f6"
+      });
+      getContentGroup().appendChild(vCircle);
+      state.roomDrawing.vertexCircles.push(vCircle);
+    }
+
+    function updateTempPolyline() {
+      if (!state.roomDrawing) return;
+      const ptsStr = state.roomDrawing.pointsM.map(p => {
+        const s = worldToSvg(p); return s.x + "," + s.y;
+      }).join(" ");
+      state.roomDrawing.tempPolyline.setAttribute("points", ptsStr);
+    }
+
+    function addSegmentFromUi(direction) {
+      if (!state.roomDrawing) { logDebug("Сначала кликните старт."); return; }
+      const L = parseFloat(segmentLengthField.value);
+      if (isNaN(L) || L <= 0) { logDebug("Некорректная длина."); return; }
+      const pts = state.roomDrawing.pointsM;
+      const last = pts[pts.length - 1];
+      let dx = 0, dy = 0;
+      if (direction === "right") dx = L;
+      else if (direction === "left") dx = -L;
+      else if (direction === "up") dy = -L;
+      else if (direction === "down") dy = L;
+      let newPt = { x: last.x + dx, y: last.y + dy };
+      const st = state.gridStepM;
+      newPt = { x: Math.round(newPt.x / st) * st, y: Math.round(newPt.y / st) * st };
+      pts.push(newPt);
+      addVertexCircle(newPt);
+      updateTempPolyline();
+      const start = pts[0];
+      const distToStart = Math.hypot(newPt.x - start.x, newPt.y - start.y);
+      showSegmentUiAtSvgPoint(worldToSvg(newPt));
+      if (distToStart < 0.05 && pts.length >= 4) closeRoom();
+    }
+
+    document.querySelectorAll("#segment-ui .arrow-btn").forEach(btn => {
+      btn.addEventListener("click", () => addSegmentFromUi(btn.dataset.dir));
+    });
+
+    function computePolygonCentroid(points) {
+      let x = 0, y = 0;
+      points.forEach(p => { x += p.x; y += p.y; });
+      return { x: x / points.length, y: y / points.length };
+    }
+
+    function closeRoom() {
+      if (!state.roomDrawing) return;
+      const pts = state.roomDrawing.pointsM;
+      if (pts.length < 3) { logDebug("Мало точек."); return; }
+      const start = pts[0];
+      const last = pts[pts.length - 1];
+      const distToStart = Math.hypot(last.x - start.x, last.y - start.y);
+      if (distToStart > 0.05) {
+        pts.push({ x: start.x, y: start.y });
+        addVertexCircle(start);
+      }
+
+      const polygon = createSvgElement("polygon", {
+        fill: "rgba(209, 250, 229, 0.4)", stroke: "#10b981", "stroke-width": "2"
+      });
+      const ptsStr = pts.map(p => {
+        const s = worldToSvg(p); return s.x + "," + s.y;
+      }).join(" ");
+      polygon.setAttribute("points", ptsStr);
+
+      let roomObj;
+      polygon.addEventListener("mousedown", evt => {
+        if (state.mode === "select") {
+          evt.stopPropagation();
+          setSelectedGeneric("room", roomObj);
+        }
+      });
+
+      state.roomDrawing.tempPolyline.remove();
+      state.roomDrawing.vertexCircles.forEach(c => c.remove());
+      state.roomDrawing = null;
+      hideSegmentUi();
+
+      const centroid = computePolygonCentroid(pts);
+      const labelPos = worldToSvg(centroid);
+      const textEl = createSvgElement("text", {
+        x: labelPos.x, y: labelPos.y,
+        "text-anchor": "middle",
+        "dominant-baseline": "middle",
+        "font-size": "12", fill: "#111827"
+      });
+      textEl.textContent = "Помещение";
+      textEl.addEventListener("mousedown", evt => {
+        if (state.mode === "select") {
+          evt.stopPropagation();
+          setSelectedGeneric("room", roomObj);
+        }
+      });
+
+      getContentGroup().appendChild(polygon);
+      getContentGroup().appendChild(textEl);
+
+      const id = generateId("room");
+      roomObj = {
+        id,
+        name: "Помещение " + id.split("_")[1],
+        heightM: 2.5,
+        pointsM: pts.slice(),
+        polygonEl: polygon,
+        labelEl: textEl
+      };
+      state.rooms.push(roomObj);
+      setSelectedGeneric("room", roomObj);
+      updateRoomLabel(roomObj);
+      logDebug("Помещение замкнуто.");
+    }
+
+    function updateRoomLabel(room) {
+      if (!room.labelEl) return;
+      const centroid = computePolygonCentroid(room.pointsM);
+      const pos = worldToSvg(centroid);
+      room.labelEl.setAttribute("x", pos.x);
+      room.labelEl.setAttribute("y", pos.y);
+      room.labelEl.textContent = room.name || "Помещение";
+    }
+
+    // элементы
+    function addSocketLike(ptM, type) {
+      const room = findRoomContainingPoint(ptM);
+      if (!room) { alert("Элемент можно ставить только внутри помещения."); return; }
+      const id = generateId(type);
+      const sPt = worldToSvg(ptM);
+      const circle = createSvgElement("circle", {
+        cx: sPt.x, cy: sPt.y, r: 5,
+        fill: type === "switch" ? "#eef2ff" : (type === "cableout" ? "#e0f2fe" : "#ffffff"),
+        stroke: type === "switch" ? "#6366f1" : (type === "cableout" ? "#0ea5e9" : "#f97316"),
+        "stroke-width": "1.5"
+      });
+      const socketObj = {
+        id, type,
+        xM: ptM.x, yM: ptM.y,
+        name: (type === "switch" ? "Выключатель " : type === "cableout" ? "Вывод " : "Розетка ") + id.split("_")[1],
+        heightM: type === "switch" ? 0.9 : (type === "cableout" ? room.heightM || 2.5 : 0.3),
+        powerKW: null,
+        group: "",
+        circleEl: circle
+      };
+      circle.addEventListener("mousedown", evt => {
+        evt.stopPropagation();
+        if (evt.button !== 0) return;
+        if (state.mode === "select") {
+          setSelectedGeneric("socket", socketObj);
+          startDrag("socket", socketObj, evt);
+        } else if (state.mode === "wire") {
+          if (state.wireDrawing) {
+            wireDeviceClick(type, socketObj);
+          } else if (!state.attachSocketId) {
+            state.attachSocketId = socketObj.id;
+            logDebug("Элемент выбран. Щёлкни по линии или по щитку/розетке/выключателю.");
+          } else if (state.attachSocketId === socketObj.id) {
+            state.attachSocketId = null;
+            logDebug("Отмена выбора элемента.");
+          } else {
+            const other = state.sockets.find(x => x.id === state.attachSocketId);
+            if (other) {
+              startWireFromDevice(other.type, other);
+              wireDeviceClick(type, socketObj);
+            }
+            state.attachSocketId = null;
+          }
+        }
+      });
+      circle.addEventListener("dblclick", evt => {
+        evt.stopPropagation();
+        if (state.mode === "select") openSocketModal(socketObj);
+      });
+      getContentGroup().appendChild(circle);
+      state.sockets.push(socketObj);
+      setSelectedGeneric("socket", socketObj);
+    }
+
+    function addPanel(ptM) {
+      const room = findRoomContainingPoint(ptM);
+      if (!room) { alert("Щиток только внутри помещения."); return; }
+      const id = generateId("panel");
+      const sPt = worldToSvg(ptM);
+      const rect = createSvgElement("rect", {
+        x: sPt.x - 7, y: sPt.y - 7, width: 14, height: 14,
+        rx: 2, ry: 2,
+        fill: "#eff6ff", stroke: "#2563eb", "stroke-width": "1.5"
+      });
+      const panelObj = {
+        id, xM: ptM.x, yM: ptM.y,
+        name: "Щиток " + id.split("_")[1],
+        heightM: 1.5,
+        rectEl: rect
+      };
+      rect.addEventListener("mousedown", evt => {
+        evt.stopPropagation();
+        if (evt.button !== 0) return;
+        if (state.mode === "select") {
+          setSelectedGeneric("panel", panelObj);
+          startDrag("panel", panelObj, evt);
+        } else if (state.mode === "wire") {
+          if (state.attachSocketId && !state.wireDrawing) {
+            const s = state.sockets.find(x => x.id === state.attachSocketId);
+            if (s) {
+              startWireFromDevice(s.type, s);
+              wireDeviceClick("panel", panelObj);
+            }
+            state.attachSocketId = null;
+          } else {
+            wireDeviceClick("panel", panelObj);
+          }
+        }
+      });
+      rect.addEventListener("dblclick", evt => {
+        evt.stopPropagation();
+        if (state.mode === "select") openPanelModal(panelObj);
+      });
+      getContentGroup().appendChild(rect);
+      state.panels.push(panelObj);
+      setSelectedGeneric("panel", panelObj);
+    }
+
+    function addBoxAtPoint(groupName, lineId, ptM) {
+      const id = generateId("box");
+      const s = worldToSvg(ptM);
+      const rect = createSvgElement("rect", {
+        x: s.x - 4, y: s.y - 4, width: 8, height: 8,
+        rx: 1, ry: 1,
+        fill: "#bbf7d0", stroke: "#16a34a", "stroke-width": "1"
+      });
+      getContentGroup().appendChild(rect);
+      const room = findRoomContainingPoint(ptM);
+      const roomH = room && room.heightM ? room.heightM : 2.5;
+      const boxObj = { id, lineId, xM: ptM.x, yM: ptM.y, heightM: roomH, group: groupName || "", rectEl: rect };
+      state.boxes.push(boxObj);
+      return boxObj;
+    }
+
+    // провода
+    function updateWirePolyline(wire) {
+      if (!wire.polylineEl) return;
+      const ptsStr = wire.pointsM.map(p => {
+        const s = worldToSvg(p); return s.x + "," + s.y;
+      }).join(" ");
+      wire.polylineEl.setAttribute("points", ptsStr);
+    }
+
+    function updateTempWirePolyline() {
+      if (!state.wireDrawing) return;
+      const ptsStr = state.wireDrawing.pointsM.map(p => {
+        const s = worldToSvg(p); return s.x + "," + s.y;
+      }).join(" ");
+      state.wireDrawing.tempPolyline.setAttribute("points", ptsStr);
+    }
+
+    function startWireFromDevice(type, obj, lineIdOverride) {
+      const startPt = { x: obj.xM, y: obj.yM };
+      const polyline = createSvgElement("polyline", {
+        fill: "none", stroke: "#111827", "stroke-width": "1.5", "stroke-dasharray": "4 4"
+      });
+      getContentGroup().appendChild(polyline);
+      const lineId = lineIdOverride || generateId("line");
+      state.wireDrawing = { lineId, fromType: type, fromId: obj.id, pointsM: [startPt], tempPolyline: polyline };
+      updateTempWirePolyline();
+      logDebug("Начало провода.");
+    }
+
+    function addWireIntermediatePoint(ptM) {
+      if (!state.wireDrawing) return;
+      const pts = state.wireDrawing.pointsM;
+      const st = state.gridStepM;
+      const newPt = {
+        x: Math.round(ptM.x / st) * st,
+        y: Math.round(ptM.y / st) * st
+      };
+      pts.push(newPt);
+      updateTempWirePolyline();
+    }
+
+    function wireDeviceClick(type, obj) {
+      const endPt = { x: obj.xM, y: obj.yM };
+      if (!state.wireDrawing) {
+        startWireFromDevice(type, obj);
+      } else {
+        const pts = state.wireDrawing.pointsM.slice();
+        pts.push(endPt); // последняя точка как есть (может быть диагональ)
+        const polyline = createSvgElement("polyline", {
+          fill: "none", stroke: "#111827", "stroke-width": "1.5"
+        });
+        getContentGroup().appendChild(polyline);
+        const wireObj = {
+          id: generateId("wire"),
+          lineId: state.wireDrawing.lineId,
+          fromType: state.wireDrawing.fromType,
+          fromId: state.wireDrawing.fromId,
+          toType: type,
+          toId: obj.id,
+          pointsM: pts,
+          polylineEl: polyline,
+          group: "",
+          cable: "",
+          section: "",
+          cores: ""
+        };
+        registerWirePolylineHandlers(wireObj);
+        updateWirePolyline(wireObj);
+        state.wireDrawing.tempPolyline.remove();
+        state.wireDrawing = null;
+        state.wires.push(wireObj);
+        setSelectedWireLine(wireObj);
+        rebuildGroupsTable();
+        logDebug("Провод создан, длина ≈ " + calcWireLength3D(wireObj).toFixed(2) + " м");
+      }
+    }
+
+    function nearestPointOnWire(pointsM, pt) {
+      let best = { x: pointsM[0].x, y: pointsM[0].y };
+      let bestDist = Infinity;
+      for (let i = 0; i < pointsM.length - 1; i++) {
+        const a = pointsM[i], b = pointsM[i+1];
+        const vx = b.x - a.x, vy = b.y - a.y;
+        const wx = pt.x - a.x, wy = pt.y - a.y;
+        const len2 = vx*vx + vy*vy || 1e-9;
+        let t = (vx*wx + vy*wy) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const proj = { x: a.x + t*vx, y: a.y + t*vy };
+        const d = Math.hypot(pt.x - proj.x, pt.y - proj.y);
+        if (d < bestDist) { bestDist = d; best = proj; }
+      }
+      return best;
+    }
+
+    function attachSocketToWire(socketObj, wireObj) {
+      if (!wireObj.pointsM || wireObj.pointsM.length < 2) return;
+      const ptOnWire = nearestPointOnWire(wireObj.pointsM, { x: socketObj.xM, y: socketObj.yM });
+      const box = addBoxAtPoint(wireObj.group, wireObj.lineId, ptOnWire);
+
+      const pts = [];
+      const start = { x: box.xM, y: box.yM };
+      const end = { x: socketObj.xM, y: socketObj.yM };
+      pts.push(start);
+      // для ветки можно сделать ломаную под 90°, чтобы не усложнять
+      if (start.x !== end.x && start.y !== end.y) {
+        pts.push({ x: end.x, y: start.y });
+      }
+      pts.push(end);
+
+      const polyline = createSvgElement("polyline", {
+        fill: "none", stroke: "#111827", "stroke-width": "1.5"
+      });
+      getContentGroup().appendChild(polyline);
+
+      const newWire = {
+        id: generateId("wire"),
+        lineId: wireObj.lineId,
+        fromType: "box",
+        fromId: box.id,
+        toType: socketObj.type,
+        toId: socketObj.id,
+        pointsM: pts,
+        polylineEl: polyline,
+        group: wireObj.group,
+        cable: wireObj.cable,
+        section: wireObj.section,
+        cores: wireObj.cores
+      };
+      registerWirePolylineHandlers(newWire);
+      updateWirePolyline(newWire);
+      state.wires.push(newWire);
+      setSelectedWireLine(newWire);
+      rebuildGroupsTable();
+      logDebug("Создана ветка от коробки к розетке, длина ≈ " + calcWireLength3D(newWire).toFixed(2) + " м");
+    }
+
+    function registerWirePolylineHandlers(wireObj) {
+      const polyline = wireObj.polylineEl;
+      polyline.addEventListener("mousedown", evt => {
+        evt.stopPropagation();
+        if (evt.button !== 0) return;
+        if (state.mode === "wire" && state.attachSocketId && !state.wireDrawing) {
+          const s = state.sockets.find(x => x.id === state.attachSocketId);
+          if (!s) return;
+          const ok = confirm("Подключить этот элемент к выбранной линии (через распредкоробку)?");
+          if (ok) attachSocketToWire(s, wireObj);
+          state.attachSocketId = null;
+        } else if (state.mode === "select") {
+          setSelectedWireLine(wireObj);
+        }
+      });
+      polyline.addEventListener("dblclick", evt => {
+        evt.stopPropagation();
+        if (state.mode === "select") openWireModal(wireObj);
+      });
+    }
+
+    // перетаскивание розеток/щитков
+    function startDrag(type, obj, evt) {
+      const w = svgToWorld(evt);
+      state.dragging = {
+        type, id: obj.id,
+        offsetXM: obj.xM - w.x,
+        offsetYM: obj.yM - w.y
+      };
+    }
+
+    function handleDragMove(evt) {
+      if (!state.dragging) return;
+      const { type, id, offsetXM, offsetYM } = state.dragging;
+      const obj = findById(type, id);
+      if (!obj) return;
+      const w = svgToWorld(evt);
+      let newPt = { x: w.x + offsetXM, y: w.y + offsetYM };
+      const st = state.gridStepM;
+      newPt = { x: Math.round(newPt.x / st) * st, y: Math.round(newPt.y / st) * st };
+      const room = findRoomContainingPoint(newPt);
+      if (!room) return;
+      obj.xM = newPt.x;
+      obj.yM = newPt.y;
+      const s = worldToSvg(newPt);
+      if (type === "socket") {
+        obj.circleEl.setAttribute("cx", s.x);
+        obj.circleEl.setAttribute("cy", s.y);
+      } else if (type === "panel") {
+        obj.rectEl.setAttribute("x", s.x - 7);
+        obj.rectEl.setAttribute("y", s.y - 7);
+      }
+      // провода пока не подтягиваем
+    }
+    function stopDrag() { state.dragging = null; }
+
+    // свойства (левая панель)
+    function renderSelectionPanel() {
+      if (!state.selected) {
+        noSelection.style.display = "block";
+        selectionProps.style.display = "none";
+        return;
+      }
+      noSelection.style.display = "none";
+      selectionProps.style.display = "block";
+
+      roomNameRow.style.display = "none";
+      roomHeightRow.style.display = "none";
+      socketNameRow.style.display = "none";
+      panelNameRow.style.display = "none";
+      wirePropsRow.style.display = "none";
+      deleteLineRow.style.display = "none";
+
+      const { type, id } = state.selected;
+      const obj = findById(type, id);
+      if (!obj) return;
+
+      if (type === "room") {
+        selectedTypeLabel.textContent = "Помещение";
+        roomNameRow.style.display = "block";
+        roomHeightRow.style.display = "block";
+        roomNameInput.value = obj.name || "";
+        roomHeightInput.value = obj.heightM != null ? obj.heightM : "";
+      } else if (type === "socket") {
+        const labelType = obj.type === "switch" ? "Выключатель" : obj.type === "cableout" ? "Вывод кабеля" : "Розетка";
+        selectedTypeLabel.textContent = labelType;
+        socketNameRow.style.display = "block";
+        socketNameInput.value = obj.name || "";
+      } else if (type === "panel") {
+        selectedTypeLabel.textContent = "Щиток";
+        panelNameRow.style.display = "block";
+        panelNameInput.value = obj.name || "";
+      } else if (type === "wire") {
+        const w = obj;
+        selectedTypeLabel.textContent = "Линия";
+        wirePropsRow.style.display = "block";
+        deleteLineRow.style.display = "block";
+        wireGroupInput.value = w.group || "";
+        wireCableInput.value = w.cable || "";
+        wireSectionInput.value = w.section || "";
+        wireCoresInput.value = w.cores || "";
+        wireLengthLabel.textContent = calcLineLength3D(w.lineId).toFixed(2);
+      }
+    }
+
+    roomNameInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "room") return;
+      const r = findById("room", state.selected.id); if (!r) return;
+      r.name = roomNameInput.value;
+      updateRoomLabel(r);
+    });
+
+    roomHeightInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "room") return;
+      const r = findById("room", state.selected.id); if (!r) return;
+      const v = parseFloat(roomHeightInput.value);
+      if (!isNaN(v) && v > 0) r.heightM = v;
+      rebuildGroupsTable();
+    });
+
+    socketNameInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "socket") return;
+      const s = findById("socket", state.selected.id); if (!s) return;
+      s.name = socketNameInput.value;
+    });
+
+    panelNameInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "panel") return;
+      const p = findById("panel", state.selected.id); if (!p) return;
+      p.name = panelNameInput.value;
+    });
+
+    function updateLineProps(lineId, updater) {
+      state.wires.filter(w => w.lineId === lineId).forEach(updater);
+      state.boxes.filter(b => b.lineId === lineId).forEach(updater);
+    }
+
+    wireGroupInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "wire") return;
+      const w = findById("wire", state.selected.id); if (!w) return;
+      updateLineProps(w.lineId, obj => obj.group = wireGroupInput.value);
+      rebuildGroupsTable();
+    });
+    wireCableInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "wire") return;
+      const w = findById("wire", state.selected.id); if (!w) return;
+      updateLineProps(w.lineId, obj => obj.cable = wireCableInput.value);
+    });
+    wireSectionInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "wire") return;
+      const w = findById("wire", state.selected.id); if (!w) return;
+      updateLineProps(w.lineId, obj => obj.section = wireSectionInput.value);
+    });
+    wireCoresInput.addEventListener("input", () => {
+      if (!state.selected || state.selected.type !== "wire") return;
+      const w = findById("wire", state.selected.id); if (!w) return;
+      updateLineProps(w.lineId, obj => obj.cores = wireCoresInput.value);
+    });
+
+    deleteLineBtn.addEventListener("click", () => {
+      if (!state.selected || state.selected.type !== "wire") return;
+      const w = findById("wire", state.selected.id); if (!w) return;
+      if (!confirm("Удалить всю линию целиком (все участки и коробки)?")) return;
+      const lineId = w.lineId;
+      state.wires = state.wires.filter(x => {
+        if (x.lineId === lineId) { x.polylineEl.remove(); return false; }
+        return true;
+      });
+      state.boxes = state.boxes.filter(b => {
+        if (b.lineId === lineId) { b.rectEl.remove(); return false; }
+        return true;
+      });
+      clearSelection();
+      rebuildGroupsTable();
+      logDebug("Линия удалена.");
+    });
+
+    // модал розетки/выключателя/вывода
+    function openSocketModal(socketObj) {
+      modalSocketId = socketObj.id;
+      socketModalName.value = socketObj.name || "";
+      socketModalHeight.value = socketObj.heightM != null ? socketObj.heightM : "";
+      socketModalPower.value = socketObj.powerKW != null ? socketObj.powerKW : "";
+      socketModalGroup.value = socketObj.group || "";
+      socketModalBackdrop.style.display = "flex";
+    }
+    function closeSocketModal() {
+      socketModalBackdrop.style.display = "none";
+      modalSocketId = null;
+    }
+    socketModalOk.addEventListener("click", () => {
+      if (!modalSocketId) return;
+      const s = state.sockets.find(x => x.id === modalSocketId); if (!s) return;
+      s.name = socketModalName.value || s.name;
+      const h = parseFloat(socketModalHeight.value);
+      if (!isNaN(h) && h > 0) s.heightM = h;
+      const p = parseFloat(socketModalPower.value);
+      if (!isNaN(p) && p > 0) s.powerKW = p;
+      s.group = socketModalGroup.value || "";
+      if (state.selected && state.selected.type === "socket" && state.selected.id === s.id) {
+        socketNameInput.value = s.name;
+      }
+      rebuildGroupsTable();
+      closeSocketModal();
+    });
+    socketModalCancel.addEventListener("click", closeSocketModal);
+    socketModalBackdrop.addEventListener("click", e => {
+      if (e.target === socketModalBackdrop) closeSocketModal();
+    });
+
+    // модал щитка
+    function openPanelModal(panelObj) {
+      modalPanelId = panelObj.id;
+      panelModalName.value = panelObj.name || "";
+      panelModalHeight.value = panelObj.heightM != null ? panelObj.heightM : "";
+      panelModalBackdrop.style.display = "flex";
+    }
+    function closePanelModal() {
+      panelModalBackdrop.style.display = "none";
+      modalPanelId = null;
+    }
+    panelModalOk.addEventListener("click", () => {
+      if (!modalPanelId) return;
+      const p = findById("panel", modalPanelId); if (!p) return;
+      p.name = panelModalName.value || p.name;
+      const h = parseFloat(panelModalHeight.value);
+      if (!isNaN(h) && h > 0) p.heightM = h;
+      if (state.selected && state.selected.type === "panel" && state.selected.id === p.id) {
+        panelNameInput.value = p.name;
+      }
+      rebuildGroupsTable();
+      closePanelModal();
+    });
+    panelModalCancel.addEventListener("click", closePanelModal);
+    panelModalBackdrop.addEventListener("click", e => {
+      if (e.target === panelModalBackdrop) closePanelModal();
+    });
+
+    // модал линии
+    function openWireModal(wireObj) {
+      modalWireId = wireObj.id;
+      const lineId = wireObj.lineId;
+      const any = wireObj;
+      wireModalGroup.value = any.group || "";
+      wireModalCable.value = any.cable || "";
+      wireModalSection.value = any.section || "";
+      wireModalCores.value = any.cores || "";
+      wireModalLength.textContent = calcLineLength3D(lineId).toFixed(2);
+      wireModalBackdrop.style.display = "flex";
+    }
+    function closeWireModal() {
+      wireModalBackdrop.style.display = "none";
+      modalWireId = null;
+    }
+    wireModalOk.addEventListener("click", () => {
+      if (!modalWireId) return;
+      const w = findById("wire", modalWireId); if (!w) return;
+      const lineId = w.lineId;
+      const group = wireModalGroup.value || "";
+      const cable = wireModalCable.value || "";
+      const section = wireModalSection.value || "";
+      const cores = wireModalCores.value || "";
+      updateLineProps(lineId, obj => {
+        obj.group = group;
+        obj.cable = cable;
+        obj.section = section;
+        obj.cores = cores;
+      });
+      rebuildGroupsTable();
+      if (state.selected && state.selected.type === "wire") {
+        wireGroupInput.value = group;
+        wireCableInput.value = cable;
+        wireSectionInput.value = section;
+        wireCoresInput.value = cores;
+        wireLengthLabel.textContent = calcLineLength3D(lineId).toFixed(2);
+      }
+      closeWireModal();
+    });
+    wireModalCancel.addEventListener("click", closeWireModal);
+    wireModalBackdrop.addEventListener("click", e => {
+      if (e.target === wireModalBackdrop) closeWireModal();
+    });
+
+    // группы / сводка
+    function rebuildGroupsTable() {
+      const groups = {};
+      state.wires.forEach(w => {
+        const name = w.group && w.group.trim() ? w.group.trim() : "Без группы";
+        if (!groups[name]) groups[name] = {
+          name, length: 0, wiresCount: 0, socketsCount: 0, boxesCount: 0
+        };
+        groups[name].length += calcWireLength3D(w);
+        groups[name].wiresCount += 1;
+        if (w.toType === "socket" || w.toType === "switch" || w.toType === "cableout" ||
+            w.fromType === "socket" || w.fromType === "switch" || w.fromType === "cableout") {
+          groups[name].socketsCount += 1;
+        }
+      });
+      state.boxes.forEach(b => {
+        const name = b.group && b.group.trim() ? b.group.trim() : "Без группы";
+        if (!groups[name]) groups[name] = {
+          name, length: 0, wiresCount: 0, socketsCount: 0, boxesCount: 0
+        };
+        groups[name].boxesCount += 1;
+      });
+
+      if (Object.keys(groups).length === 0) {
+        groupsTable.innerHTML = '<div id="groups-table-empty">Пока нет ни одной линии.</div>';
+        return;
+      }
+      let html = "<table><thead><tr><th>Группа</th><th>Длина, м</th><th>Линий</th><th>Розеток/элементов</th><th>Коробок</th></tr></thead><tbody>";
+      Object.values(groups).forEach(g => {
+        html += `<tr>
+          <td>${g.name}</td>
+          <td>${g.length.toFixed(2)}</td>
+          <td>${g.wiresCount}</td>
+          <td>${g.socketsCount}</td>
+          <td>${g.boxesCount}</td>
+        </tr>`;
+      });
+      html += "</tbody></table>";
+      groupsTable.innerHTML = html;
+    }
+
+    // зум
+    svg.addEventListener("wheel", evt => {
+      evt.preventDefault();
+      const factor = evt.deltaY > 0 ? 0.9 : 1.1;
+      let newScale = state.scale * factor;
+      newScale = Math.max(state.minScale, Math.min(state.maxScale, newScale));
+      state.scale = newScale;
+      updateGridPattern();
+      redrawAllGeometry();
+    }, { passive: false });
+
+    function redrawAllGeometry() {
+      state.rooms.forEach(room => {
+        if (room.polygonEl) {
+          const ptsStr = room.pointsM.map(p => {
+            const s = worldToSvg(p); return s.x + "," + s.y;
+          }).join(" ");
+          room.polygonEl.setAttribute("points", ptsStr);
+        }
+        updateRoomLabel(room);
+      });
+      if (state.roomDrawing) {
+        updateTempPolyline();
+        state.roomDrawing.vertexCircles.forEach((c, i) => {
+          const pt = state.roomDrawing.pointsM[i];
+          const s = worldToSvg(pt);
+          c.setAttribute("cx", s.x);
+          c.setAttribute("cy", s.y);
+        });
+        const last = state.roomDrawing.pointsM[state.roomDrawing.pointsM.length - 1];
+        showSegmentUiAtSvgPoint(worldToSvg(last));
+      }
+      state.sockets.forEach(s => {
+        const p = worldToSvg({ x: s.xM, y: s.yM });
+        s.circleEl.setAttribute("cx", p.x);
+        s.circleEl.setAttribute("cy", p.y);
+      });
+      state.panels.forEach(p => {
+        const q = worldToSvg({ x: p.xM, y: p.yM });
+        p.rectEl.setAttribute("x", q.x - 7);
+        p.rectEl.setAttribute("y", q.y - 7);
+      });
+      state.boxes.forEach(b => {
+        const q = worldToSvg({ x: b.xM, y: b.yM });
+        b.rectEl.setAttribute("x", q.x - 4);
+        b.rectEl.setAttribute("y", q.y - 4);
+      });
+      state.wires.forEach(w => updateWirePolyline(w));
+      if (state.wireDrawing) updateTempWirePolyline();
+    }
+
+    // события SVG: панорама + клики
+    svg.addEventListener("mousedown", evt => {
+      const ptM = svgToWorld(evt);
+
+      // панорамирование — средняя или правая кнопка в любом режиме
+      if (evt.button === 1 || evt.button === 2) {
+        state.panning = {
+          startX: evt.clientX,
+          startY: evt.clientY,
+          startOffsetX: state.offsetX,
+          startOffsetY: state.offsetY
+        };
+        evt.preventDefault();
+        return;
+      }
+
+      if (evt.button !== 0) return;
+
+      if (state.mode === "draw-room") {
+        if (!state.roomDrawing) startRoomAtPoint(ptM);
+      } else if (state.mode === "add-socket") {
+        addSocketLike(ptM, "socket");
+      } else if (state.mode === "add-panel") {
+        addPanel(ptM);
+      } else if (state.mode === "add-switch") {
+        addSocketLike(ptM, "switch");
+      } else if (state.mode === "add-cableout") {
+        addSocketLike(ptM, "cableout");
+      } else if (state.mode === "wire") {
+        if (state.wireDrawing) {
+          addWireIntermediatePoint(ptM);
+        }
+      } else if (state.mode === "select") {
+        clearSelection();
+      }
+    });
+
+    svg.addEventListener("mousemove", evt => {
+      if (state.dragging) {
+        handleDragMove(evt);
+      } else if (state.panning) {
+        const dxPx = evt.clientX - state.panning.startX;
+        const dyPx = evt.clientY - state.panning.startY;
+        state.offsetX = state.panning.startOffsetX - dxPx / state.scale;
+        state.offsetY = state.panning.startOffsetY - dyPx / state.scale;
+        redrawAllGeometry();
+      }
+    });
+
+    svg.addEventListener("mouseup", () => {
+      state.panning = null;
+      stopDrag();
+    });
+
+    svg.addEventListener("mouseleave", () => {
+      state.panning = null;
+      stopDrag();
+    });
+
+    svg.addEventListener("contextmenu", evt => evt.preventDefault());
+
+    // переключение режимов
+    sidebarButtons.forEach(btn => {
+      btn.addEventListener("click", () => setMode(btn.dataset.mode));
+    });
+
+    // старт
+    initSvg();
+    logDebug("Готово: рисуй помещения, ставь элементы, строй линии, подключай через коробки.");
+  </script>
+</body>
+</html>
